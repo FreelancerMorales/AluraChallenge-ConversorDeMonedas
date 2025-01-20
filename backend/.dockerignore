@@ -1,5 +1,0 @@
-# Ignore compiled class files
-bin/
-# Ignore other unnecessary files
-.git
-*.md
