@@ -1,0 +1,7 @@
+Fecha de la conversión: 09/10/2024
+Divisa de origen: COP
+Divisa de destino: CLP
+Monto: 5000.0
+Tasa: 0.2187
+Total: 1.093,50
+

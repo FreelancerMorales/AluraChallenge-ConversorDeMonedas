@@ -1,0 +1,7 @@
+.main-container {
+  grid-area: main;
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

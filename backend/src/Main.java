@@ -1,0 +1,96 @@
+import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpExchange;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import org.json.JSONObject;
+
+public class Main {
+
+    public static void main(String[] args) throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
+        System.out.println("Server started at port 8000...");
+
+        server.createContext("/convert", new ConvertHandler());
+
+        server.setExecutor(null);
+        server.start();
+    }
+    static class ConvertHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            // Add CORS headers to allow the frontend to make requests
+            exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+            exchange.getResponseHeaders().add("Access-Control-Allow-Methods", "POST, OPTIONS");
+            exchange.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type");
+
+            // Handle preflight (OPTIONS) requests for CORS
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1); // No content, just acknowledge
+                return;
+            }
+
+            // Ensure the request method is POST
+            if ("POST".equals(exchange.getRequestMethod())) {
+                // Read the request body
+                InputStream is = exchange.getRequestBody();
+                String requestBody = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+
+                // Parse the request body as JSON
+                JSONObject json = new JSONObject(requestBody);
+                String fromCurrency = json.getString("fromCurrency");
+                String toCurrency = json.getString("toCurrency");
+                double amount = json.getDouble("amount");
+
+                // Simulate the currency conversion (static rates for demo purposes)
+                double conversionRate = getConversionRate(fromCurrency, toCurrency);
+                double convertedAmount = amount * conversionRate;
+
+                // Prepare the response in JSON format
+                JSONObject responseJson = new JSONObject();
+                responseJson.put("convertedAmount", convertedAmount);
+
+                // Send the response
+                String responseText = responseJson.toString();
+                exchange.sendResponseHeaders(200, responseText.getBytes().length);
+                OutputStream os = exchange.getResponseBody();
+                os.write(responseText.getBytes());
+                os.close();
+            } else {
+                // If the request method is not POST, return 405 Method Not Allowed
+                exchange.sendResponseHeaders(405, -1); // 405 Method Not Allowed
+            }
+        }
+
+
+        private double getConversionRate(String fromCurrency, String toCurrency) {
+            String APIKEY = "0356dbdf0d2bac7603c47bd9";
+            String URL = "https://v6.exchangerate-api.com/v6/" + APIKEY + "/latest/" + fromCurrency;
+            Double conversionRate = 1.0;
+
+            try {
+                java.net.URL url = new java.net.URL(URL);
+                java.net.HttpURLConnection connection = (java.net.HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+
+                InputStream is = connection.getInputStream();
+                java.util.Scanner scanner = new java.util.Scanner(is, "UTF-8").useDelimiter("\\A");
+                String response = scanner.hasNext() ? scanner.next() : "";
+
+                JSONObject jsonResponse = new JSONObject(response);
+                System.out.println("Respuesta: " + jsonResponse);
+                conversionRate = jsonResponse.getJSONObject("conversion_rates").getDouble(toCurrency);
+                System.out.println("Tasas: " + conversionRate);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            return conversionRate;
+        }
+    }
+}
+
